@@ -12,8 +12,8 @@ import (
 type User struct {
 	Id            int64     `orm:"auto"`
 	LastLogintime time.Time `orm:"type(datetime)"`
-	Created time.Time `orm:"type(datetime)"`
-	Username      string    `orm:"size(128)"`
+	Created       time.Time `orm:"type(datetime)"`
+	Username      string    `orm:"size(128);index"`
 	Password      string    `orm:"size(128)"`
 }
 
@@ -26,7 +26,7 @@ func init() {
 func AddUser(m *User) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
-	return
+	return id, err
 }
 
 // GetUserById retrieves User by Id. Returns error if
@@ -40,10 +40,10 @@ func GetUserById(id int64) (v *User, err error) {
 	return nil, err
 }
 
-func GetUserInfo(username string) (v *User, err error){
+func GetUserInfo(username string) (v *User, err error) {
 	o := orm.NewOrm()
-	v = &User{Username:username}
-	if err = o.Read(v); err == nil {
+	v = &User{Username: username}
+	if err = o.Read(v,"Username"); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -137,7 +137,6 @@ func UpdateUserById(m *User) (err error) {
 	}
 	return
 }
-
 
 // DeleteUser deletes User by Id and returns error if
 // the record to be deleted doesn't exist

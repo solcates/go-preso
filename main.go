@@ -4,16 +4,19 @@ import (
 	_ "github.com/solcates/go-preso/routers"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
-	//"github.com/astaxie/beego/context"
-	//"strings"
 	"github.com/astaxie/beego/session"
 	"github.com/solcates/go-preso/globalsessions"
 	"github.com/prometheus/common/log"
-	_ "github.com/mattn/go-sqlite3"
-	//_ "github.com/gwenn/gosqlite"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/beego/social-auth"
 	"github.com/beego/social-auth/apps"
 	"github.com/astaxie/beego/context"
+	"github.com/solcates/go-preso/models"
+	"crypto/md5"
+	"bytes"
+	"fmt"
+	"io"
+	"time"
 )
 
 func IsUserLogin(ctx *context.Context) (int, bool) {
@@ -25,6 +28,7 @@ func IsUserLogin(ctx *context.Context) (int, bool) {
 
 type socialAuther struct {
 }
+
 func (p *socialAuther) IsUserLogin(ctx *context.Context) (int, bool) {
 	return IsUserLogin(ctx)
 }
@@ -36,15 +40,19 @@ func (p *socialAuther) LoginUser(ctx *context.Context, uid int) (string, error) 
 	}
 	return "/login", nil
 }
+
 var SocialAuth *social.SocialAuth
 
-
-func initialize() {
+func init() {
 
 	/*
 	Setup Sessions
 	*/
-	orm.RegisterDataBase("default", "sqlite3", "db/database.db", 30)
+	//orm.RegisterDataBase("default", "sqlite3", "db/database.db", 30)
+	//orm.RegisterModel(new(models.User))
+
+	orm.RegisterDataBase("default", "mysql", beego.AppConfig.String("mysql_url"), 30)
+
 	sessionConfig := &session.ManagerConfig{
 		CookieName: "jigsessionid",
 		Gclifetime: 3600,
@@ -57,6 +65,30 @@ func initialize() {
 	globalsessions.GlobalSessions.SetSecure(true)
 	go globalsessions.GlobalSessions.GC()
 
+	// Setup DB for first time
+	orm.RunSyncdb("default", false, false)
+	_, err = models.GetUserById(1)
+
+	if err != nil {
+		md5Password := md5.New()
+		io.WriteString(md5Password, "admin")
+		buffer := bytes.NewBuffer(nil)
+		fmt.Fprintf(buffer, "%x", md5Password.Sum(nil))
+		newPass := buffer.String()
+		now := time.Now()
+		default_admin := models.User{
+			Username:      "admin",
+			Password:      newPass,
+			LastLogintime: now,
+			Created:       now,
+		}
+		_, err := models.AddUser(&default_admin)
+		if err != nil {
+			log.Error(err)
+		}
+		log.Info("Created default admin account of 'admin' with password of 'admin'... make sure you change it :)")
+
+	}
 
 	// OAuth
 	var clientId, secret string
@@ -79,8 +111,6 @@ func initialize() {
 	SocialAuth.LoginURL = "/login"
 }
 
-
-
 func main() {
 	//var FilterUser = func(ctx *context.Context) {
 	//	if strings.HasPrefix(ctx.Input.URL(), "/login") {
@@ -93,7 +123,5 @@ func main() {
 	//}
 	//
 	//beego.InsertFilter("/*", beego.BeforeRouter, FilterUser)
-	initialize()
 	beego.Run()
 }
-

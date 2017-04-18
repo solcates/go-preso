@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"github.com/solcates/go-preso/models"
 	"github.com/solcates/go-preso/globalsessions"
-	"github.com/prometheus/common/log"
 	"encoding/json"
+	"github.com/prometheus/common/log"
 )
 
 // LoginController operations for Login
@@ -48,25 +48,29 @@ func (this *LoginController) Post() {
 	newPass := buffer.String()
 
 	now := time.Now()
-
-	log.Info(username)
-	log.Info(password)
 	userInfo, err := models.GetUserInfo(username)
 	if err != nil {
-		return
+		log.Info("got Error from GetUserInfo")
+		this.Data["JSON"] = err
+		this.ServeJSON()
 	}
+
 	if userInfo.Password == newPass {
 		var users models.User
 		users.LastLogintime = now
-		models.UpdateUserById(&users)
+		userInfo.LastLogintime = now
+		models.UpdateUserById(userInfo)
 
 		//Set the session successful login
 		sess, _ := globalsessions.GlobalSessions.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
 		sess.Set("uid", userInfo.Id)
 		sess.Set("uname", userInfo.Username)
 
-		this.Ctx.Redirect(302, "/")
+		this.Data["JSON"] = &userInfo
+		this.ServeJSON()
 	} else {
+		log.Info("Password Didn't match up")
+
 		this.Data["JSON"] = &userInfo
 		this.ServeJSON()
 	}
