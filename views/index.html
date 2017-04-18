@@ -9,14 +9,43 @@
 
 </head>
 
-<body>
+<body ng-cloak layout="column">
 
-<ng-view></ng-view>
-<script src="/static/js/reload.min.js"></script>
-<script src="/static/components/angular/angular.min.js" type="application/javascript"></script>
+<div flex layout="row">
+    <md-sidenav
+            class="md-sidenav-left"
+            md-component-id="left"
+            md-is-locked-open="$mdMedia('gt-md')"
+            md-whiteframe="4">
+
+        <md-toolbar class="md-theme-indigo">
+            <h1 class="md-toolbar-tools">Go-Preso</h1>
+        </md-toolbar>
+        <md-content layout-padding ng-controller="NavController">
+
+        </md-content>
+
+    </md-sidenav>
+
+    <md-content flex layout-padding>
+
+        <ng-view></ng-view>
+
+    </md-content>
+
+
+</div>
+
+
+<!--<script src="/static/js/reload.min.js"></script>-->
+<script src="/static/components/angular/angular.js" type="application/javascript"></script>
 <script src="/static/components/angular-animate/angular-animate.min.js" type="application/javascript"></script>
 <script src="/static/components/angular-aria/angular-aria.min.js" type="application/javascript"></script>
+<script src="/static/components/angular-messages/angular-messages.min.js" type="application/javascript"></script>
 <script src="/static/components/angular-material/angular-material.min.js" type="application/javascript"></script>
-
+<script src="/static/components/angular-route/angular-route.min.js" type="application/javascript"></script>
+<script src="/static/js/index.js" type="application/javascript"></script>
+<script src="/static/js/controllers/main.js" type="application/javascript"></script>
+<script src="/static/js/controllers/login.js" type="application/javascript"></script>
 </body>
 </html>
