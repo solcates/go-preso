@@ -1,21 +1,14 @@
 var app = angular.module('gopreso', [
     'ngMaterial',
+    'http-auth-interceptor',
+    'md.data.table',
     'ngAnimate',
     'ngAria',
     'ngMessages',
     'ngRoute',
     'gopreso.main.controller',
-    'gopreso.login.controller',
 ])
-    .config(['$routeProvider', function ($routeProvider) {
-        $routeProvider.when('/', {
-            templateUrl: '/static/views/main.html',
-            controller: 'MainController',
-            controllerAs: "main",
-            name: "main"
-        });
-    }])
-    .controller('NavController', function ($scope, $http, $mdSidenav) {
+    .controller('NavController', function ($scope, $http, $mdSidenav,$rootScope, $log, $location, authService,$route) {
         $scope.close = function () {
             // Component lookup should always be available since we are not using `ng-if`
             $mdSidenav('left').close()
@@ -24,23 +17,79 @@ var app = angular.module('gopreso', [
                 });
 
         };
+        $scope.currentNavItem = "main"; // default show
+        $rootScope.$on('$routeChangeSuccess', function (event, current) {
+            $scope.currentNavItem = $route.current.name;
+        });
 
 
+        $scope.$on('event:auth-loginConfirmed', function(event, data){
+            $rootScope.isLoggedin = true;
+            $log.log(data)
+        });
+        $scope.$on('event:auth-loginRequired', function(event, data){
+            $rootScope.isLoggedin = false;
+        });
+
+        $rootScope.isLoggedin = false;
+        $http({
+            url:"/api/me",
+            method: "GET"
+        }).then(function(data){
+            $log.log(data)
+            $rootScope.isLoggedin = true;
+
+        }, function(err){
+            $log.error(err)
+            $rootScope.isLoggedin = false;
+
+        })
+        $scope.logout = function(){
+            $log.log("Logging out")
+            $rootScope.isLoggedin = false;
+            $http({
+                url: "/api/logout",
+                method: "POST"
+            })
+        }
+        $scope.vm = {
+            formData: {
+                email: 'admin',
+                password: 'admin'
+            },
+            submit: function () {
+                $http({
+                    method: "POST",
+                    url: "/api/login",
+                    data: {
+                        username: $scope.vm.formData.email,
+                        password: $scope.vm.formData.password
+                    }
+                }).then(function (data) {
+                    authService.loginConfirmed()
+                    $rootScope.isLoggedin = true;
+
+                }, function (err) {
+                    $rootScope.isLoggedin = false;
+
+                })
+            }
+        };
     })
 
-    .run(['$rootScope', '$location', 'AuthService', function ($rootScope, $location, AuthService) {
-        $rootScope.$on('$routeChangeStart', function (event, currRoute, prevRoute) {
-            var logged = AuthService.isAuthenticated();
-            //check if the user is going to the login page
-            // i use ui.route so not exactly sure about this one but you get the picture
-
-            if (!logged) {
-                // event.preventDefault();
-                $location.path('/login');
-
-            }
-        });
-    }])
+    // .run(['$rootScope', '$location', 'AuthService', function ($rootScope, $location, AuthService) {
+    //     $rootScope.$on('$routeChangeStart', function (event, currRoute, prevRoute) {
+    //         var logged = AuthService.isAuthenticated();
+    //         //check if the user is going to the login page
+    //         // i use ui.route so not exactly sure about this one but you get the picture
+    //
+    //         if (!logged) {
+    //             // event.preventDefault();
+    //             $location.path('/login');
+    //
+    //         }
+    //     });
+    // }])
     .factory('localStorage', ['$window', function ($window) {
         if ($window.localStorage) {
             return $window.localStorage;

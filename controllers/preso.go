@@ -7,22 +7,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/astaxie/beego"
 )
 
 //  PresoController operations for Preso
 type PresoController struct {
-	beego.Controller
+	BaseController
 }
 
 // URLMapping ...
 func (c *PresoController) URLMapping() {
 	c.Mapping("Post", c.Post)
 	c.Mapping("GetOne", c.GetOne)
-	c.Mapping("GetAll", c.GetAll)
+	//c.Mapping("GetAll", c.Get)
 	c.Mapping("Put", c.Put)
 	c.Mapping("Delete", c.Delete)
 }
+
 
 // Post ...
 // @Title Post
@@ -74,7 +74,7 @@ func (c *PresoController) GetOne() {
 // @Success 200 {object} models.Preso
 // @Failure 403
 // @router / [get]
-func (c *PresoController) GetAll() {
+func (c *PresoController) Get() {
 	var fields []string
 	var sortby []string
 	var order []string

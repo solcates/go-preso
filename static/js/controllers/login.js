@@ -12,21 +12,27 @@ var app = angular.module('gopreso.login.controller', [
             name: "login"
         });
     }])
-    .controller('LoginController', function ($scope, $http) {
+    .controller('LoginController', function ($scope, $http, authService) {
         $scope.vm = {
             formData: {
-                email: 'hello@patternry.com',
-                password: 'foobar'
+                email: 'admin',
+                password: 'admin'
             },
             submit: function () {
                 console.log($scope.vm.formData)
                 $http({
                     method: "POST",
-                    url: "/login",
+                    url: "/api/login",
                     data: {
                         username: $scope.vm.formData.email,
                         password: $scope.vm.formData.password
                     }
+                }).then(function (data) {
+                    console.log("Successful Login")
+
+                    authService.loginConfirmed()
+                }, function (err) {
+                    console.log(err)
                 })
             }
         };

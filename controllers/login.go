@@ -11,6 +11,7 @@ import (
 	"github.com/solcates/go-preso/models"
 	"github.com/solcates/go-preso/globalsessions"
 	"encoding/json"
+	_ "github.com/prometheus/common/log"
 	"github.com/prometheus/common/log"
 )
 
@@ -31,7 +32,7 @@ func (c *LoginController) URLMapping() {
 // @Success 201 {object} models.Login
 // @Failure 403 body is empty
 // @router / [post]
-func (this *LoginController) Post() {
+func (this *LoginController) Login() {
 
 	// Read the request
 	this.Ctx.Output.Header("Content-Type", "application/json; charset=utf-8")
@@ -51,7 +52,11 @@ func (this *LoginController) Post() {
 	userInfo, err := models.GetUserInfo(username)
 	if err != nil {
 		log.Info("got Error from GetUserInfo")
-		this.Data["JSON"] = err
+		this.Data["json"] = &models.RestResponse{
+			Message:    "Bad Username/Password",
+			Success:    false,
+			StatusCode: 200,
+		}
 		this.ServeJSON()
 	}
 
@@ -62,20 +67,77 @@ func (this *LoginController) Post() {
 		models.UpdateUserById(userInfo)
 
 		//Set the session successful login
-		sess, _ := globalsessions.GlobalSessions.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
-		sess.Set("uid", userInfo.Id)
-		sess.Set("uname", userInfo.Username)
-
-		this.Data["JSON"] = &userInfo
+		this.SetSession("uid", userInfo.Id)
+		this.SetSession("uname", userInfo.Username)
+		//sess, _ := globalsessions.GlobalSessions.SessionStart(this.Ctx.ResponseWriter, this.Ctx.Request)
+		//sess.Set("uid", userInfo.Id)
+		//sess.Set("uname", userInfo.Username)
+		this.Data["json"] = &models.RestResponse{
+			Message:    "Success",
+			StatusCode: 200,
+			Success:    true,
+		}
 		this.ServeJSON()
 	} else {
-		log.Info("Password Didn't match up")
 
-		this.Data["JSON"] = &userInfo
+		this.Data["json"] = &models.RestResponse{
+			Message:    "Username/Password incorrect",
+			StatusCode: 200,
+			ErrorCode:  1,
+		}
 		this.ServeJSON()
 	}
 }
+func (this *LoginController) Logout() {
+	this.Ctx.Output.Header("Content-Type", "application/json; charset=utf-8")
+	this.DestroySession()
 
+	//globalsessions.GlobalSessions.SessionDestroy(this.Ctx.ResponseWriter, this.Ctx.Request)
+	this.Data["json"] = &models.RestResponse{
+		Message:    "User Logged Out",
+		Success:    true,
+		StatusCode: 200,
+	}
+	this.ServeJSON()
+}
+
+func (this *LoginController) Me() {
+	this.Ctx.Output.Header("Content-Type", "application/json; charset=utf-8")
+	uname := this.GetSession("uname")
+	if uname == nil {
+		this.Data["json"] = &models.RestResponse{
+			Message:    "Not Signed In",
+			Success:    false,
+			ErrorCode:  2,
+			StatusCode: 403,
+		}
+		this.ServeJSON()
+	} else {
+
+		ob, err := models.GetUserInfo(uname.(string))
+		if err != nil {
+			this.Data["json"] = &models.RestResponse{
+				Message:    "Not Found",
+				Success:    false,
+				ErrorCode:  1,
+				StatusCode: 404,
+			}
+			this.ServeJSON()
+		} else {
+			this.Data["json"] = &models.RestResponse{
+				Message: "None",
+				Success: true,
+				Data:    ob,
+				StatusCode: 200,
+				ErrorCode: 0,
+			}
+			this.ServeJSON()
+		}
+	}
+
+
+
+}
 
 type RegController struct {
 	beego.Controller
@@ -133,14 +195,14 @@ func (this *RegController) Post() {
 }
 
 func checkPassword(password string) (b bool) {
-	if ok, _ := regexp.MatchString("^[a-zA-Z0-9]{4,16}$", password); !ok {
+	if ok, _ := regexp.MatchString("^[a-zA-Z0-9]{8,64}$", password); !ok {
 		return false
 	}
 	return true
 }
 
 func checkUsername(username string) (b bool) {
-	if ok, _ := regexp.MatchString("^[a-zA-Z0-9]{4,16}$", username); !ok {
+	if ok, _ := regexp.MatchString("^[a-zA-Z0-9]{4,128}$", username); !ok {
 		return false
 	}
 	return true

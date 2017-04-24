@@ -12,6 +12,7 @@ import (
 type Slide struct {
 	Id      int64 `orm:"auto"`
 	Order   int
+	Preso	*Preso `orm:"rel(one)"`
 	Content string `orm:"size(128)"`
 }
 

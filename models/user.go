@@ -14,7 +14,7 @@ type User struct {
 	LastLogintime time.Time `orm:"type(datetime)"`
 	Created       time.Time `orm:"type(datetime)"`
 	Username      string    `orm:"size(128);index"`
-	Password      string    `orm:"size(128)"`
+	Password      string    `orm:"size(128)",json:"-"`
 }
 
 func init() {
